@@ -33,7 +33,7 @@ interface WorkspaceState {
   reset: () => void;
   
   // Orchestration Thunks
-  startAnalysis: (policyText: string) => Promise<void>;
+  startAnalysis: (inputs: {title: string, text: string}[]) => Promise<void>;
   challengeRules: (rulesToChallenge: Rule[]) => Promise<void>;
   proposePatch: (finding: Finding) => Promise<void>;
   applyPatchAndRegress: (patch: PatchProposal) => Promise<void>;
@@ -67,7 +67,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setError: (error) => set((state) => ({ session: { ...state.session, error } })),
       reset: () => set({ session: initialSession }),
 
-  startAnalysis: async (policyText: string) => {
+  startAnalysis: async (inputs: {title: string, text: string}[]) => {
     const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, setError } = get();
     
     // Generate a unique session ID for this run
@@ -76,9 +76,11 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
     try {
       // 1. Init
+      const policyText = inputs.map((input, idx) => `=== Document: ${input.title || 'Untitled Document ' + (idx + 1)} ===\n${input.text}`).join('\n\n');
+
       setPolicy({
         id: "demo-policy-1",
-        title: "Demo Policy",
+        title: inputs.length > 1 ? "Multi-Policy Analysis" : inputs[0].title || "Demo Policy",
         rawText: policyText,
         sourceType: "text",
         sourceChunks: [],

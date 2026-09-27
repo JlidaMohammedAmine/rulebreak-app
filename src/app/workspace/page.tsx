@@ -44,14 +44,14 @@ function WorkspaceContent() {
   const isDemo = searchParams.get("demo") === "true";
   const isNew = searchParams.get("new") === "true";
   const { session, startAnalysis, reset } = useWorkspaceStore();
-  const [policyText, setPolicyText] = useState(isDemo ? DEMO_POLICY : "");
+  const [policies, setPolicies] = useState([{ title: isDemo ? "Demo Policy" : "Policy 1", text: isDemo ? DEMO_POLICY : "" }]);
   const [showInput, setShowInput] = useState(session.state === "IDLE");
   const hasAutoStarted = useRef(false);
 
   useEffect(() => {
     if (isNew) {
       reset();
-      setPolicyText("");
+      setPolicies([{ title: "Policy 1", text: "" }]);
       setShowInput(true);
       router.replace("/workspace");
       return;
@@ -61,7 +61,7 @@ function WorkspaceContent() {
       hasAutoStarted.current = true;
       setShowInput(false);
       reset();
-      startAnalysis(DEMO_POLICY);
+      startAnalysis([{ title: "Demo Policy", text: DEMO_POLICY }]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, isDemo, router, reset]);
@@ -72,15 +72,16 @@ function WorkspaceContent() {
   }, [session.state]);
 
   const handleRun = () => {
-    if (!policyText.trim()) return;
+    const validPolicies = policies.filter(p => p.text.trim());
+    if (validPolicies.length === 0) return;
     setShowInput(false);
-    startAnalysis(policyText);
+    startAnalysis(validPolicies);
   };
 
   const handleReset = () => {
     hasAutoStarted.current = false;
     reset();
-    setPolicyText(isDemo ? DEMO_POLICY : "");
+    setPolicies([{ title: isDemo ? "Demo Policy" : "Policy 1", text: isDemo ? DEMO_POLICY : "" }]);
     setShowInput(true);
     if (isDemo) router.replace("/workspace");
   };
@@ -151,21 +152,49 @@ function WorkspaceContent() {
               </div>
             </div>
             
-            <div className="w-full bg-black border border-white/10 rounded p-2 transition-all focus-within:border-white/20">
-              <textarea
-                value={policyText}
-                onChange={e => setPolicyText(e.target.value)}
-                rows={10}
-                placeholder="e.g., Customers may request a refund within 14 calendar days of purchase..."
-                className="w-full bg-transparent p-4 text-[14px] font-mono leading-relaxed text-slate-300 placeholder-slate-700 resize-none focus:outline-none"
-              />
-              <div className="flex items-center justify-between p-2 mt-2">
-                <p className="text-[11px] font-mono text-slate-600 px-3">
-                  {policyText.length} characters
-                </p>
+            <div className="w-full flex flex-col gap-4">
+              {policies.map((p, idx) => (
+                <div key={idx} className="w-full bg-black border border-white/10 rounded p-2 transition-all focus-within:border-white/20">
+                  <input
+                    type="text"
+                    value={p.title}
+                    onChange={e => {
+                      const newPolicies = [...policies];
+                      newPolicies[idx].title = e.target.value;
+                      setPolicies(newPolicies);
+                    }}
+                    placeholder={`Document ${idx + 1} Title`}
+                    className="w-full bg-transparent p-2 px-4 text-[13px] font-bold text-white placeholder-slate-600 focus:outline-none border-b border-white/5"
+                  />
+                  <textarea
+                    value={p.text}
+                    onChange={e => {
+                      const newPolicies = [...policies];
+                      newPolicies[idx].text = e.target.value;
+                      setPolicies(newPolicies);
+                    }}
+                    rows={6}
+                    placeholder="e.g., Customers may request a refund within 14 calendar days of purchase..."
+                    className="w-full bg-transparent p-4 text-[14px] font-mono leading-relaxed text-slate-300 placeholder-slate-700 resize-none focus:outline-none"
+                  />
+                  {policies.length > 1 && (
+                    <div className="flex justify-end p-2 border-t border-white/5">
+                       <button onClick={() => setPolicies(policies.filter((_, i) => i !== idx))} className="text-[11px] text-red-500 hover:text-red-400">Remove</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              <div className="flex items-center justify-between mt-2">
+                <button
+                  onClick={() => setPolicies([...policies, { title: `Policy ${policies.length + 1}`, text: "" }])}
+                  className="text-[12px] font-mono text-slate-400 hover:text-white transition-colors"
+                >
+                  + Add another document
+                </button>
                 <button
                   onClick={handleRun}
-                  disabled={!policyText.trim()}
+                  disabled={policies.every(p => !p.text.trim())}
                   className="flex items-center gap-2 h-9 px-6 bg-white text-black text-[13px] font-medium rounded-sm hover:bg-slate-200 disabled:opacity-30 transition-all"
                 >
                   <Play className="w-3.5 h-3.5" />

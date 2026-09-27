@@ -23,6 +23,24 @@ export function PolicyPanel() {
   const { session } = useWorkspaceStore();
   const { policy, rules, state } = session;
 
+  const renderPolicyText = (text: string) => {
+    if (text.includes("=== Document:")) {
+      const parts = text.split(/(=== Document:.*?===)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith("=== Document:")) {
+          const title = part.replace("=== Document:", "").replace("===", "").trim();
+          return (
+            <div key={i} className="mt-4 mb-2 first:mt-0 font-bold text-[13px] text-white border-b border-white/10 pb-1 uppercase tracking-wide">
+              {title}
+            </div>
+          );
+        }
+        return <div key={i} className="mb-4">{part.trim()}</div>;
+      });
+    }
+    return text;
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-black">
       {/* Header */}
@@ -40,7 +58,7 @@ export function PolicyPanel() {
           <div className="p-6 border-b border-white/5">
             <p className="text-[11px] font-mono text-slate-600 uppercase tracking-widest mb-3">Document</p>
             <div className="text-[14px] text-slate-400 leading-relaxed font-serif whitespace-pre-wrap">
-              {policy.rawText}
+              {renderPolicyText(policy.rawText)}
             </div>
           </div>
         )}
