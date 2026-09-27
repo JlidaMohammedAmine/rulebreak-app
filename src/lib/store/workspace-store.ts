@@ -2,21 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AnalysisSession, Policy, Rule, Scenario, Evaluation, Finding, AnalysisState, PatchProposal, RegressionRun } from '@/types';
 
-const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs = 120000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (error: any) {
-    clearTimeout(id);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. The AI model is taking too long to respond.');
-    }
-    throw error;
-  }
-};
 
 interface WorkspaceState {
   session: AnalysisSession;
@@ -77,95 +62,62 @@ export const useWorkspaceStore = create<WorkspaceState>()(
   startAnalysis: async (inputs: {title: string, text: string}[], complianceFramework?: string) => {
     const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, setError } = get();
     
-    // Generate a unique session ID for this run
     const runId = `session-${Date.now()}`;
-    set((state) => ({ session: { ...state.session, id: runId } }));
+    set((state) => ({ session: { ...state.session, id: runId, rules: [], scenarios: [], evaluations: [], findings: [] }, activeHighlightId: null }));
 
     try {
-      // 1. Init
-      const policyText = inputs.map((input, idx) => `=== Document: ${input.title || 'Untitled Document ' + (idx + 1)} ===\n${input.text}`).join('\n\n');
+      const initialText = inputs.map((input, idx) => `=== Document: ${input.title || 'Untitled Document ' + (idx + 1)} ===\n${input.text}`).join('\n\n');
 
       setPolicy({
         id: "demo-policy-1",
         title: inputs.length > 1 ? "Multi-Policy Analysis" : inputs[0].title || "Demo Policy",
-        rawText: policyText,
+        rawText: initialText,
         sourceType: "text",
         sourceChunks: [],
         createdAt: new Date().toISOString()
       });
       setState("CLEANING_POLICY");
 
-      // 1.5 Clean Policy
-      const cleanRes = await fetchWithTimeout("/api/policy/clean", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ policyText })
-      });
-      const cleanData = await cleanRes.json();
-      if (!cleanData.success) throw new Error(cleanData.error.message);
-      
+      const { cleanPolicyAction, extractRulesAction, generateScenariosAction, judgeScenariosAction, aggregateFindingsAction } = await import("@/app/actions/ai-actions");
+
+      const cleanedText = await cleanPolicyAction(initialText);
       if (get().session.id !== runId) return;
       
-      const { cleanedText } = cleanData.data;
-      
-      // Update policy with the cleaned text so the rest of the flow uses it
-      setPolicy({
-        ...get().session.policy!,
-        rawText: cleanedText
-      });
+      setPolicy({ ...get().session.policy!, rawText: cleanedText });
 
       setState("EXTRACTING_RULES");
-
-      // 2. Extract
-      const extractRes = await fetchWithTimeout("/api/policy/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ policyText: cleanedText })
-      });
-      const extractData = await extractRes.json();
-      if (!extractData.success) throw new Error(extractData.error.message);
-      
-      if (get().session.id !== runId) return; // Abort if session changed
-      
-      const { rules, sources } = extractData.data;
-      setRules(rules);
-      if (sources) {
-        setPolicy({
-          ...get().session.policy!,
-          sourceChunks: sources
-        });
+      const extractStream = await extractRulesAction(cleanedText);
+      for await (const partial of extractStream) {
+        if (get().session.id !== runId) return;
+        if (partial.rules) setRules(partial.rules as any);
+        if (partial.sources) {
+          setPolicy({ ...get().session.policy!, sourceChunks: partial.sources as any });
+        }
       }
+      
       setState("GENERATING_SCENARIOS");
-
-      // 3. Generate
-      const genRes = await fetchWithTimeout("/api/scenarios/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rules, policyText: cleanedText })
-      });
-      const genData = await genRes.json();
-      if (!genData.success) throw new Error(genData.error.message);
+      const currentRules = get().session.rules;
+      const genStream = await generateScenariosAction(currentRules, cleanedText);
+      for await (const partial of genStream) {
+        if (get().session.id !== runId) return;
+        if (partial.scenarios) setScenarios(partial.scenarios as any);
+      }
       
-      if (get().session.id !== runId) return; // Abort if session changed
-
-      const { scenarios } = genData.data;
-      setScenarios(scenarios);
       setState("JUDGING");
+      const currentScenarios = get().session.scenarios;
+      const judgeStream = await judgeScenariosAction(currentScenarios, currentRules, cleanedText, complianceFramework || "None");
+      for await (const partial of judgeStream) {
+        if (get().session.id !== runId) return;
+        if (partial.evaluations) setEvaluations(partial.evaluations as any);
+      }
 
-      // 4. Judge
-      const judgeRes = await fetchWithTimeout("/api/scenarios/judge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarios, rules, policyText: cleanedText, complianceFramework })
-      });
-      const judgeData = await judgeRes.json();
-      if (!judgeData.success) throw new Error(judgeData.error.message);
-      
-      if (get().session.id !== runId) return; // Abort if session changed
-
-      const { evaluations, findings } = judgeData.data;
-      setEvaluations(evaluations);
-      setFindings(findings);
+      setState("CHALLENGING");
+      const currentEvaluations = get().session.evaluations;
+      const findingsStream = await aggregateFindingsAction(currentEvaluations, currentRules);
+      for await (const partial of findingsStream) {
+        if (get().session.id !== runId) return;
+        if (partial.findings) setFindings(partial.findings as any);
+      }
       
       setState("COMPLETE");
     } catch (e: any) {
@@ -181,32 +133,32 @@ export const useWorkspaceStore = create<WorkspaceState>()(
     if (!session.policy || session.state === "CHALLENGING") return;
 
     try {
-      setState("CHALLENGING");
+      const { challengePolicyAction, judgeScenariosAction, aggregateFindingsAction } = await import("@/app/actions/ai-actions");
       
-      const res = await fetchWithTimeout("/api/policy/challenge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rulesToChallenge, policyText: session.policy.rawText })
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error.message);
+      setState("CHALLENGING");
+      let newScenarios: any[] = [];
+      const chalStream = await challengePolicyAction(rulesToChallenge, session.policy.rawText);
+      for await (const partial of chalStream) {
+        if (partial.scenarios) {
+          newScenarios = partial.scenarios;
+          setScenarios([...session.scenarios, ...newScenarios]);
+        }
+      }
 
-      const newScenarios = data.data.scenarios;
       const combinedScenarios = [...session.scenarios, ...newScenarios];
-      setScenarios(combinedScenarios);
-
-      // Now judge them
+      
       setState("JUDGING");
-      const judgeRes = await fetchWithTimeout("/api/scenarios/judge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarios: combinedScenarios, rules: session.rules, policyText: session.policy.rawText })
-      });
-      const judgeData = await judgeRes.json();
-      if (!judgeData.success) throw new Error(judgeData.error.message);
+      const judgeStream = await judgeScenariosAction(combinedScenarios, session.rules, session.policy.rawText, "None");
+      for await (const partial of judgeStream) {
+        if (partial.evaluations) setEvaluations(partial.evaluations as any);
+      }
 
-      setEvaluations(judgeData.data.evaluations);
-      setFindings(judgeData.data.findings);
+      setState("CHALLENGING"); // Using as aggregation step
+      const findingsStream = await aggregateFindingsAction(get().session.evaluations, session.rules);
+      for await (const partial of findingsStream) {
+        if (partial.findings) setFindings(partial.findings as any);
+      }
+
       setState("COMPLETE");
     } catch(e: any) {
       setError(e.message);
@@ -220,16 +172,18 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
     try {
       setState("PATCH_READY");
-      const res = await fetchWithTimeout("/api/policy/patch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ finding, policyText: session.policy.rawText, rules: session.rules })
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error.message);
-
-      // Just append it for MVP
-      setPatches([...session.patches, data.data.patch]);
+      const { proposePatchAction } = await import("@/app/actions/ai-actions");
+      
+      const patchStream = await proposePatchAction(finding, session.policy.rawText, session.rules);
+      let latestPatch: any = null;
+      for await (const partial of patchStream) {
+        if (partial.patch) {
+          latestPatch = partial.patch;
+          // Update patches array by replacing or adding
+          const filtered = session.patches.filter(p => p.findingId !== finding.id);
+          setPatches([...filtered, latestPatch]);
+        }
+      }
     } catch(e: any) {
       setError(e.message);
       setState("ERROR");
@@ -251,26 +205,36 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const updatedPolicy = { ...session.policy, rawText: patchedText };
       setPolicy(updatedPolicy);
 
+      const { extractRulesAction, judgeScenariosAction, aggregateFindingsAction } = await import("@/app/actions/ai-actions");
+
       // Re-extract rules
-      const extractRes = await fetchWithTimeout("/api/policy/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ policyText: patchedText })
-      });
-      const extractData = await extractRes.json();
-      const newRules = extractData.data.rules;
-      get().setRules(newRules);
+      let newRules: any[] = [];
+      const extractStream = await extractRulesAction(patchedText);
+      for await (const partial of extractStream) {
+        if (partial.rules) {
+          newRules = partial.rules as any;
+          get().setRules(newRules);
+        }
+      }
 
       // Re-evaluate scenarios
-      const judgeRes = await fetchWithTimeout("/api/scenarios/judge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarios: session.scenarios, rules: newRules, policyText: patchedText })
-      });
-      const judgeData = await judgeRes.json();
+      let newEvaluations: any[] = [];
+      const judgeStream = await judgeScenariosAction(session.scenarios, newRules, patchedText, "None");
+      for await (const partial of judgeStream) {
+        if (partial.evaluations) {
+          newEvaluations = partial.evaluations;
+          setEvaluations(newEvaluations);
+        }
+      }
       
-      const newEvaluations = judgeData.data.evaluations;
-      const newFindings = judgeData.data.findings;
+      let newFindings: any[] = [];
+      const findingsStream = await aggregateFindingsAction(newEvaluations, newRules);
+      for await (const partial of findingsStream) {
+        if (partial.findings) {
+          newFindings = partial.findings;
+          setFindings(newFindings);
+        }
+      }
 
       // Identify regressions
       const regressions: string[] = [];
@@ -321,18 +285,17 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         (f: Finding) => !session.patches.some((p: PatchProposal) => p.findingId === f.id)
       );
 
-      const patchPromises = unpatchedFindings.map((finding: Finding) =>
-        fetchWithTimeout("/api/policy/patch", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ finding, policyText: session.policy!.rawText, rules: session.rules })
-        }).then(res => res.json())
-      );
+      const { proposePatchAction, extractRulesAction, judgeScenariosAction, aggregateFindingsAction } = await import("@/app/actions/ai-actions");
 
-      const patchResults = await Promise.all(patchPromises);
-      const newPatches = patchResults
-        .filter(r => r.success)
-        .map(r => r.data.patch);
+      const newPatches: PatchProposal[] = [];
+      for (const finding of unpatchedFindings) {
+        const patchStream = await proposePatchAction(finding, session.policy.rawText, session.rules);
+        let latestPatch: any = null;
+        for await (const partial of patchStream) {
+          if (partial.patch) latestPatch = partial.patch;
+        }
+        if (latestPatch) newPatches.push(latestPatch);
+      }
 
       const allPatches = [...session.patches, ...newPatches];
       setPatches(allPatches);
@@ -353,27 +316,33 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setPolicy(updatedPolicy);
 
       // 3. Re-extract rules
-      const extractRes = await fetchWithTimeout("/api/policy/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ policyText: patchedText })
-      });
-      const extractData = await extractRes.json();
-      if (!extractData.success) throw new Error(extractData.error.message);
-      const newRules = extractData.data.rules;
-      get().setRules(newRules);
+      let newRules: any[] = [];
+      const extractStream = await extractRulesAction(patchedText);
+      for await (const partial of extractStream) {
+        if (partial.rules) {
+          newRules = partial.rules as any;
+          get().setRules(newRules);
+        }
+      }
 
       // 4. Re-evaluate scenarios
-      const judgeRes = await fetchWithTimeout("/api/scenarios/judge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarios: session.scenarios, rules: newRules, policyText: patchedText })
-      });
-      const judgeData = await judgeRes.json();
-      if (!judgeData.success) throw new Error(judgeData.error.message);
+      let newEvaluations: any[] = [];
+      const judgeStream = await judgeScenariosAction(session.scenarios, newRules, patchedText, "None");
+      for await (const partial of judgeStream) {
+        if (partial.evaluations) {
+          newEvaluations = partial.evaluations;
+          setEvaluations(newEvaluations);
+        }
+      }
       
-      const newEvaluations = judgeData.data.evaluations;
-      const newFindings = judgeData.data.findings;
+      let newFindings: any[] = [];
+      const findingsStream = await aggregateFindingsAction(newEvaluations, newRules);
+      for await (const partial of findingsStream) {
+        if (partial.findings) {
+          newFindings = partial.findings;
+          setFindings(newFindings);
+        }
+      }
 
       // 5. Build Regression Run
       const regressions: string[] = [];
