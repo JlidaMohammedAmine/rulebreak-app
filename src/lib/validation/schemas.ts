@@ -3,8 +3,8 @@ import { z } from "zod";
 // Source Reference
 export const sourceReferenceSchema = z.object({
   id: z.string(), // e.g., SRC-001
-  page: z.number().optional(),
-  paragraph: z.number().optional(),
+  page: z.number().nullable().describe("Can be null"),
+  paragraph: z.number().nullable().describe("Can be null"),
   text: z.string(),
 });
 
@@ -12,7 +12,7 @@ export const sourceReferenceSchema = z.object({
 export const ruleConditionSchema = z.object({
   field: z.string(),
   operator: z.string(),
-  value: z.any(),
+  value: z.string().nullable().describe("Can be null"),
 });
 
 export const ruleSchema = z.object({
@@ -27,12 +27,12 @@ export const ruleSchema = z.object({
     "definition",
     "other",
   ]),
-  conditions: z.array(ruleConditionSchema).optional(),
-  exceptions: z.array(z.string()).optional(),
-  action: z.string().optional(),
-  precedence: z.string().optional(),
+  conditions: z.array(ruleConditionSchema).nullable().describe("Can be null"),
+  exceptions: z.array(z.string()).nullable().describe("Can be null"),
+  action: z.string().nullable().describe("Can be null"),
+  precedence: z.string().nullable().describe("Can be null"),
   sourceId: z.string(),
-  confidence: z.enum(["high", "medium", "low"]).optional(),
+  confidence: z.enum(["high", "medium", "low"]).nullable().describe("Can be null"),
 });
 
 export const rulesResponseSchema = z.object({
@@ -57,10 +57,10 @@ export const scenarioSchema = z.object({
   id: z.string(), // e.g., S001
   type: scenarioCategorySchema,
   title: z.string(),
-  facts: z.record(z.string(), z.any()),
+  facts: z.record(z.string(), z.string()),
   narrative: z.string(),
   targetRules: z.array(z.string()),
-  expectedRisk: z.enum(["high", "medium", "low"]).optional(),
+  expectedRisk: z.enum(["high", "medium", "low"]).nullable().describe("Can be null"),
 });
 
 export const scenariosResponseSchema = z.object({
@@ -78,7 +78,7 @@ export const evaluationStatusSchema = z.enum([
 ]);
 
 export const evidenceSchema = z.object({
-  ruleId: z.string().optional(),
+  ruleId: z.string().nullable().describe("Can be null"),
   sourceText: z.string(),
 });
 
@@ -89,7 +89,7 @@ export const evaluationSchema = z.object({
   applicableRules: z.array(z.string()),
   evidence: z.array(evidenceSchema),
   reasoning: z.string(),
-  recommendedClarification: z.string().optional(),
+  recommendedClarification: z.string().nullable().describe("Can be null"),
 });
 
 export const evaluationsResponseSchema = z.object({
