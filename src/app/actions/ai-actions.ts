@@ -9,19 +9,19 @@ import {
   findingSchema, 
   patchProposalSchema 
 } from '@/lib/validation/schemas';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { createGroq } from '@ai-sdk/groq';
 import { z } from 'zod';
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY || "",
 });
 
 // Helper to configure the model
 const getModel = () => {
-  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    throw new Error("Missing Gemini API Key. Please add GEMINI_API_KEY to your .env.local file.");
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("Missing Groq API Key. Please add GROQ_API_KEY to your .env.local file.");
   }
-  return google('gemini-3.5-flash'); 
+  return groq('qwen/qwen3.8-27b'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
