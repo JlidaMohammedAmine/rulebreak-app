@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
   PRECEDENCE_CONFLICT: "Precedence Conflict",
   EXCEPTION_CONFLICT: "Exception Conflict",
   UNDEFINED_TERM: "Undefined Term",
+  COMPLIANCE_VIOLATION: "Compliance Violation",
 };
 
 export function FindingsPanel() {

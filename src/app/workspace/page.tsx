@@ -45,6 +45,7 @@ function WorkspaceContent() {
   const isNew = searchParams.get("new") === "true";
   const { session, startAnalysis, reset } = useWorkspaceStore();
   const [policies, setPolicies] = useState([{ title: isDemo ? "Demo Policy" : "Policy 1", text: isDemo ? DEMO_POLICY : "" }]);
+  const [complianceFramework, setComplianceFramework] = useState("None");
   const [showInput, setShowInput] = useState(session.state === "IDLE");
   const hasAutoStarted = useRef(false);
 
@@ -52,6 +53,7 @@ function WorkspaceContent() {
     if (isNew) {
       reset();
       setPolicies([{ title: "Policy 1", text: "" }]);
+      setComplianceFramework("None");
       setShowInput(true);
       router.replace("/workspace");
       return;
@@ -61,7 +63,7 @@ function WorkspaceContent() {
       hasAutoStarted.current = true;
       setShowInput(false);
       reset();
-      startAnalysis([{ title: "Demo Policy", text: DEMO_POLICY }]);
+      startAnalysis([{ title: "Demo Policy", text: DEMO_POLICY }], "None");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, isDemo, router, reset]);
@@ -75,7 +77,7 @@ function WorkspaceContent() {
     const validPolicies = policies.filter(p => p.text.trim());
     if (validPolicies.length === 0) return;
     setShowInput(false);
-    startAnalysis(validPolicies);
+    startAnalysis(validPolicies, complianceFramework);
   };
 
   const handleReset = () => {
@@ -185,21 +187,37 @@ function WorkspaceContent() {
                 </div>
               ))}
               
-              <div className="flex items-center justify-between mt-2">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-2 gap-4">
                 <button
                   onClick={() => setPolicies([...policies, { title: `Policy ${policies.length + 1}`, text: "" }])}
                   className="text-[12px] font-mono text-slate-400 hover:text-white transition-colors"
                 >
                   + Add another document
                 </button>
-                <button
-                  onClick={handleRun}
-                  disabled={policies.every(p => !p.text.trim())}
-                  className="flex items-center gap-2 h-9 px-6 bg-white text-black text-[13px] font-medium rounded-sm hover:bg-slate-200 disabled:opacity-30 transition-all"
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  Run Analysis
-                </button>
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-slate-500 uppercase">Compliance:</span>
+                    <select 
+                      value={complianceFramework}
+                      onChange={(e) => setComplianceFramework(e.target.value)}
+                      className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[12px] text-white focus:outline-none focus:border-white/30 transition-all"
+                    >
+                      <option value="None">None</option>
+                      <option value="GDPR (EU Data Protection)">GDPR (EU)</option>
+                      <option value="CCPA (California Privacy)">CCPA (California)</option>
+                      <option value="Consumer Rights Act (UK)">Consumer Rights Act (UK)</option>
+                      <option value="Generic Consumer Protection Laws">Generic Consumer Law</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={handleRun}
+                    disabled={policies.every(p => !p.text.trim())}
+                    className="flex items-center gap-2 h-9 px-6 bg-white text-black text-[13px] font-medium rounded-sm hover:bg-slate-200 disabled:opacity-30 transition-all"
+                  >
+                    <Play className="w-3.5 h-3.5" />
+                    Run Analysis
+                  </button>
+                </div>
               </div>
             </div>
           </div>

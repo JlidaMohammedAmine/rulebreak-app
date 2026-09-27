@@ -247,9 +247,9 @@ export class MockProvider implements AIProvider {
     });
   }
 
-  async aggregateFindings(evaluations: Evaluation[], rules: Rule[]) {
+  async aggregateFindings(evaluations: Evaluation[], rules: Rule[], complianceFramework?: string) {
     await this.delay(1000);
-    return [
+    const mockFindings = [
       {
         id: "F01",
         type: "CONTRADICTION",
@@ -269,7 +269,22 @@ export class MockProvider implements AIProvider {
         scenarioIds: ["S08"]
       }
     ] as Finding[];
+
+    if (complianceFramework && complianceFramework !== "None") {
+      mockFindings.push({
+        id: "F03",
+        type: "COMPLIANCE_VIOLATION",
+        severity: "HIGH",
+        ruleIds: ["R01"],
+        description: `Potential violation of ${complianceFramework}`,
+        evidence: `Under ${complianceFramework}, the return window might be required to start upon delivery rather than purchase.`,
+        scenarioIds: []
+      } as Finding);
+    }
+
+    return mockFindings;
   }
+
 
   async challengePolicy(rulesToChallenge: Rule[], policyText: string) {
     await this.delay(2000);

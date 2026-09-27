@@ -16,6 +16,9 @@ import {
 } from "../validation/schemas";
 
 export class GeminiProvider implements AIProvider {
+  private client: GoogleGenAI;
+  private model: string;
+
   private fallbackModels = [
     "gemini-flash-lite-latest",
     "gemini-3.5-flash-lite",
@@ -208,14 +211,18 @@ You MUST return JSON matching EXACTLY this structure:
     return evaluations;
   }
 
-  async aggregateFindings(evaluations: Evaluation[], rules: Rule[]) {
-    const findingsSys = `You are a risk analyst. Analyze the evaluations and aggregate them into critical findings (contradictions, gaps, ambiguities).
+  async aggregateFindings(evaluations: Evaluation[], rules: Rule[], complianceFramework?: string) {
+    const complianceInstruction = complianceFramework && complianceFramework !== "None"
+      ? `\nALSO, explicitly analyze if any of these rules or the policy as a whole violates the ${complianceFramework} framework. If they do, flag a finding with type "COMPLIANCE_VIOLATION".`
+      : "";
+
+    const findingsSys = `You are a risk analyst. Analyze the evaluations and aggregate them into critical findings (contradictions, gaps, ambiguities).${complianceInstruction}
 You MUST return JSON matching EXACTLY this structure:
 {
   "findings": [
     {
       "id": "F001",
-      "type": "CONTRADICTION" | "AMBIGUITY" | "MISSING_RULE" | "PRECEDENCE_CONFLICT" | "BOUNDARY_GAP" | "INSUFFICIENT_INFORMATION",
+      "type": "CONTRADICTION" | "AMBIGUITY" | "MISSING_RULE" | "PRECEDENCE_CONFLICT" | "BOUNDARY_GAP" | "INSUFFICIENT_INFORMATION" | "COMPLIANCE_VIOLATION",
       "severity": "HIGH" | "MEDIUM" | "LOW",
       "ruleIds": ["R01"],
       "description": "string",

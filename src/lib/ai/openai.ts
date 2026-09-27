@@ -159,8 +159,12 @@ Return JSON: { "evaluations": [...] }`;
     return evaluations;
   }
 
-  async aggregateFindings(evaluations: Evaluation[], rules: Rule[]) {
-    const findingsSys = `You are a risk analyst. Analyze the evaluations and aggregate them into critical findings (contradictions, gaps).
+  async aggregateFindings(evaluations: Evaluation[], rules: Rule[], complianceFramework?: string) {
+    const complianceInstruction = complianceFramework && complianceFramework !== "None"
+      ? `\nALSO, explicitly analyze if any of these rules or the policy as a whole violates the ${complianceFramework} framework. If they do, flag a finding with type "COMPLIANCE_VIOLATION".`
+      : "";
+
+    const findingsSys = `You are a risk analyst. Analyze the evaluations and aggregate them into critical findings (contradictions, gaps).${complianceInstruction}
 Return JSON: { "findings": [...] }`;
     const findingsUser = `EVALUATIONS:\n${JSON.stringify(evaluations)}`;
     const findingsRes = await this.callJSON<any>(this.reasoningModel, findingsSys, findingsUser, findingsResponseSchema);

@@ -23,7 +23,7 @@ export interface AIProvider {
   /**
    * Identifies higher-level findings (ambiguities, contradictions) from evaluations.
    */
-  aggregateFindings(evaluations: Evaluation[], rules: Rule[]): Promise<Finding[]>;
+  aggregateFindings(evaluations: Evaluation[], rules: Rule[], complianceFramework?: string): Promise<Finding[]>;
 
   /**
    * Generates adversarial test cases specifically challenging a set of rules.

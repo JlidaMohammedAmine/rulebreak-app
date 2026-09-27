@@ -33,7 +33,7 @@ interface WorkspaceState {
   reset: () => void;
   
   // Orchestration Thunks
-  startAnalysis: (inputs: {title: string, text: string}[]) => Promise<void>;
+  startAnalysis: (inputs: {title: string, text: string}[], complianceFramework?: string) => Promise<void>;
   challengeRules: (rulesToChallenge: Rule[]) => Promise<void>;
   proposePatch: (finding: Finding) => Promise<void>;
   applyPatchAndRegress: (patch: PatchProposal) => Promise<void>;
@@ -67,7 +67,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setError: (error) => set((state) => ({ session: { ...state.session, error } })),
       reset: () => set({ session: initialSession }),
 
-  startAnalysis: async (inputs: {title: string, text: string}[]) => {
+  startAnalysis: async (inputs: {title: string, text: string}[], complianceFramework?: string) => {
     const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, setError } = get();
     
     // Generate a unique session ID for this run
@@ -143,7 +143,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const judgeRes = await fetchWithTimeout("/api/scenarios/judge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarios, rules, policyText: cleanedText })
+        body: JSON.stringify({ scenarios, rules, policyText: cleanedText, complianceFramework })
       });
       const judgeData = await judgeRes.json();
       if (!judgeData.success) throw new Error(judgeData.error.message);

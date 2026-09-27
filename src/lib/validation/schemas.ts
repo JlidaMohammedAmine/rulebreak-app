@@ -105,6 +105,7 @@ export const findingTypeSchema = z.enum([
   "PRECEDENCE_CONFLICT",
   "BOUNDARY_GAP",
   "INSUFFICIENT_INFORMATION",
+  "COMPLIANCE_VIOLATION",
 ]);
 
 export const findingSchema = z.object({
