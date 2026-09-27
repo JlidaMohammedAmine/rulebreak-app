@@ -38,6 +38,10 @@ interface WorkspaceState {
   proposePatch: (finding: Finding) => Promise<void>;
   applyPatchAndRegress: (patch: PatchProposal) => Promise<void>;
   autoFixAllFindings: () => Promise<void>;
+
+  // UI State
+  activeHighlightId: string | null;
+  setActiveHighlight: (id: string | null) => void;
 }
 
 const initialSession: AnalysisSession = {
@@ -65,7 +69,10 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setFindings: (findings) => set((state) => ({ session: { ...state.session, findings } })),
       setPatches: (patches) => set((state) => ({ session: { ...state.session, patches } })),
       setError: (error) => set((state) => ({ session: { ...state.session, error } })),
-      reset: () => set({ session: initialSession }),
+      reset: () => set({ session: initialSession, activeHighlightId: null }),
+
+      activeHighlightId: null,
+      setActiveHighlight: (id) => set({ activeHighlightId: id }),
 
   startAnalysis: async (inputs: {title: string, text: string}[], complianceFramework?: string) => {
     const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, setError } = get();
@@ -120,8 +127,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       
       if (get().session.id !== runId) return; // Abort if session changed
       
-      const { rules } = extractData.data;
+      const { rules, sources } = extractData.data;
       setRules(rules);
+      if (sources) {
+        setPolicy({
+          ...get().session.policy!,
+          sourceChunks: sources
+        });
+      }
       setState("GENERATING_SCENARIOS");
 
       // 3. Generate
