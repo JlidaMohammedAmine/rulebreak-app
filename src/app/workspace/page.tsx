@@ -7,6 +7,7 @@ import { ShieldAlert, Activity, RotateCcw, Play, Loader2, ChevronRight } from "l
 
 import { useWorkspaceStore } from "@/lib/store/workspace-store";
 import { PolicyPanel } from "@/components/workspace/PolicyPanel";
+import { RuleGraph } from "@/components/workspace/RuleGraph";
 import { ScenarioLab } from "@/components/workspace/ScenarioLab";
 import { FindingsPanel } from "@/components/workspace/FindingsPanel";
 import { RegressionResults } from "@/components/workspace/RegressionResults";
@@ -47,6 +48,8 @@ function WorkspaceContent() {
   const [policies, setPolicies] = useState([{ title: isDemo ? "Demo Policy" : "Policy 1", text: isDemo ? DEMO_POLICY : "" }]);
   const [complianceFramework, setComplianceFramework] = useState("None");
   const [showInput, setShowInput] = useState(session.state === "IDLE");
+  const [leftTab, setLeftTab] = useState<"document" | "graph">("document");
+  const [rightTab, setRightTab] = useState<"findings" | "scenarios" | "regression">("findings");
   const hasAutoStarted = useRef(false);
 
   useEffect(() => {
@@ -231,21 +234,55 @@ function WorkspaceContent() {
             </div>
           )}
 
-          {/* ── 3-Column Workspace ── */}
+          {/* ── 2-Column Workspace ── */}
           <main className="flex-1 flex flex-col lg:flex-row overflow-hidden min-h-0 bg-black">
-            {/* LEFT — Policy & Rules */}
-            <div className="w-full lg:w-[340px] lg:min-w-[280px] flex flex-col border-r border-white/5 min-h-0 overflow-hidden">
-              <PolicyPanel />
+            {/* LEFT — Policy Document / Rule Graph */}
+            <div className="w-full lg:w-[400px] flex flex-col border-r border-white/5 min-h-0 overflow-hidden shrink-0">
+              <div className="shrink-0 flex items-center bg-black border-b border-white/5 p-2 gap-1">
+                <button 
+                  onClick={() => setLeftTab("document")}
+                  className={`flex-1 text-[11px] font-mono uppercase tracking-widest py-1.5 rounded-sm transition-all ${leftTab === "document" ? "bg-white/10 text-white font-bold" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  Document
+                </button>
+                <button 
+                  onClick={() => setLeftTab("graph")}
+                  className={`flex-1 text-[11px] font-mono uppercase tracking-widest py-1.5 rounded-sm transition-all ${leftTab === "graph" ? "bg-white/10 text-white font-bold" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  Rule Graph
+                </button>
+              </div>
+              {leftTab === "document" ? <PolicyPanel /> : <RuleGraph />}
             </div>
 
-            {/* CENTER — Scenario Lab */}
-            <div className="flex-1 flex flex-col border-r border-white/5 min-h-0 overflow-hidden">
-              <ScenarioLab />
-            </div>
-
-            {/* RIGHT — Findings / Regression */}
-            <div className="w-full lg:w-[380px] lg:min-w-[300px] flex flex-col min-h-0 overflow-hidden">
-              {session.state === "REGRESSION_COMPLETE" ? <RegressionResults /> : <FindingsPanel />}
+            {/* RIGHT — Analysis Results (Tabs) */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#0A0A0A]">
+              <div className="shrink-0 flex items-center bg-black border-b border-white/5 px-2 py-2 gap-1 z-10">
+                <button 
+                  onClick={() => setRightTab("findings")}
+                  className={`px-6 text-[11px] font-mono uppercase tracking-widest py-1.5 rounded-sm transition-all ${rightTab === "findings" ? "bg-white/10 text-white font-bold" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  Findings
+                </button>
+                <button 
+                  onClick={() => setRightTab("scenarios")}
+                  className={`px-6 text-[11px] font-mono uppercase tracking-widest py-1.5 rounded-sm transition-all ${rightTab === "scenarios" ? "bg-white/10 text-white font-bold" : "text-slate-500 hover:text-slate-300"}`}
+                >
+                  Scenario Lab
+                </button>
+                {session.state === "REGRESSION_COMPLETE" && (
+                  <button 
+                    onClick={() => setRightTab("regression")}
+                    className={`px-6 text-[11px] font-mono uppercase tracking-widest py-1.5 rounded-sm transition-all ${rightTab === "regression" ? "bg-white/10 text-white font-bold" : "text-slate-500 hover:text-slate-300"}`}
+                  >
+                    Regression
+                  </button>
+                )}
+              </div>
+              
+              {rightTab === "findings" && <FindingsPanel />}
+              {rightTab === "scenarios" && <ScenarioLab />}
+              {rightTab === "regression" && <RegressionResults />}
             </div>
           </main>
         </>

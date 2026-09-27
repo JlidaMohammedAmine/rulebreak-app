@@ -4,24 +4,24 @@ import { CheckCircle2, XCircle, AlertCircle, Clock, FlaskConical, Swords } from 
 import { motion, AnimatePresence } from "framer-motion";
 
 const STATUS_CONFIG = {
-  PASS: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/8 border-emerald-500/15" },
-  FAIL: { icon: XCircle, color: "text-red-500", bg: "bg-red-500/8 border-red-500/15" },
-  AMBIGUOUS: { icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-500/8 border-amber-500/15" },
-  CONTRADICTION: { icon: AlertCircle, color: "text-orange-500", bg: "bg-orange-500/8 border-orange-500/15" },
-  MISSING_RULE: { icon: AlertCircle, color: "text-purple-400", bg: "bg-purple-500/8 border-purple-500/15" },
-  INSUFFICIENT_INFORMATION: { icon: AlertCircle, color: "text-slate-400", bg: "bg-slate-500/8 border-slate-500/15" },
+  PASS: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-zinc-900 border-zinc-800" },
+  FAIL: { icon: XCircle, color: "text-red-500", bg: "bg-zinc-900 border-zinc-800" },
+  AMBIGUOUS: { icon: AlertCircle, color: "text-amber-500", bg: "bg-zinc-900 border-zinc-800" },
+  CONTRADICTION: { icon: AlertCircle, color: "text-orange-500", bg: "bg-zinc-900 border-zinc-800" },
+  MISSING_RULE: { icon: AlertCircle, color: "text-purple-400", bg: "bg-zinc-900 border-zinc-800" },
+  INSUFFICIENT_INFORMATION: { icon: AlertCircle, color: "text-zinc-400", bg: "bg-zinc-900 border-zinc-800" },
 } as const;
 
 const CAT_COLORS: Record<string, string> = {
-  NORMAL: "text-slate-400 bg-slate-500/10 border-slate-500/15",
-  BOUNDARY: "text-blue-400 bg-blue-500/10 border-blue-500/15",
-  AMBIGUOUS: "text-amber-400 bg-amber-500/10 border-amber-500/15",
-  CONTRADICTION: "text-orange-400 bg-orange-500/10 border-orange-500/15",
-  EXCEPTION_INTERACTION: "text-purple-400 bg-purple-500/10 border-purple-500/15",
-  MISSING_INFORMATION: "text-slate-400 bg-slate-500/10 border-slate-500/15",
-  SEQUENCE: "text-cyan-400 bg-cyan-500/10 border-cyan-500/15",
-  PRECEDENCE: "text-teal-400 bg-teal-500/10 border-teal-500/15",
-  ADVERSARIAL: "text-red-400 bg-red-500/10 border-red-500/15",
+  NORMAL: "text-zinc-400 border-zinc-800",
+  BOUNDARY: "text-zinc-400 border-zinc-800",
+  AMBIGUITY: "text-zinc-400 border-zinc-800",
+  CONTRADICTION: "text-zinc-400 border-zinc-800",
+  EXCEPTION_INTERACTION: "text-zinc-400 border-zinc-800",
+  MISSING_INFORMATION: "text-zinc-400 border-zinc-800",
+  SEQUENCE: "text-zinc-400 border-zinc-800",
+  PRECEDENCE: "text-zinc-400 border-zinc-800",
+  ADVERSARIAL: "text-zinc-400 border-zinc-800",
 };
 
 export function ScenarioLab() {
@@ -121,40 +121,39 @@ export function ScenarioLab() {
                   transition={{ delay: Math.min(idx * 0.04, 0.8), duration: 0.2 }}
                   className={`rounded border overflow-hidden transition-all ${
                     isChallenge
-                      ? "border-red-500/10 bg-red-500/5"
+                      ? "border-red-500/20 bg-zinc-900"
                       : statusCfg
-                      ? `${statusCfg.bg.replace('/15', '/5').replace('/8', '/5')}`
-                      : "border-white/5 bg-black hover:border-white/10"
+                      ? statusCfg.bg
+                      : "border-zinc-800/50 bg-[#0A0A0A] hover:border-zinc-700/50"
                   }`}
                 >
                   <div className="flex items-start gap-4 p-4">
                     <div className="shrink-0 flex flex-col items-center gap-2 pt-0.5">
-                      <span className="text-[10px] font-black font-mono text-slate-600">{scenario.id}</span>
                       {!evaluation ? (
-                        isJudging ? <Clock className="w-3.5 h-3.5 text-slate-600 animate-pulse" /> : null
+                        isJudging ? <Clock className="w-4 h-4 text-zinc-600 animate-pulse" /> : <FlaskConical className="w-4 h-4 text-zinc-600" />
                       ) : statusCfg ? (
-                        <statusCfg.icon className={`w-3.5 h-3.5 ${statusCfg.color}`} />
+                        <statusCfg.icon className={`w-4 h-4 ${statusCfg.color}`} />
                       ) : null}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-sm border uppercase tracking-widest ${catColor}`}>
+                        <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-sm border uppercase tracking-widest bg-zinc-900 ${catColor}`}>
                           {(scenario.type ?? "").replace(/_/g, " ")}
                         </span>
                         {isChallenge && (
-                          <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-sm border uppercase tracking-widest text-red-500 bg-red-500/5 border-red-500/10 flex items-center gap-1">
+                          <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded-sm border uppercase tracking-widest text-red-500 bg-zinc-900 border-red-500/20 flex items-center gap-1">
                             <Swords className="w-2.5 h-2.5" /> Challenge
                           </span>
                         )}
                       </div>
-                      <p className="text-[14px] text-slate-300 leading-snug">{scenario.narrative}</p>
+                      <p className="text-[14px] text-zinc-300 leading-snug">{scenario.narrative}</p>
                     </div>
                   </div>
 
                   {evaluation && evaluation.status !== "PASS" && evaluation.reasoning && (
                     <div className={`px-4 pb-4 pt-0`}>
-                      <div className={`text-[12px] font-mono leading-relaxed px-3 py-2 rounded-sm border ${statusCfg?.bg?.replace('/15', '/10').replace('/8', '/5') ?? ""} ${statusCfg?.color ?? "text-slate-400"}`}>
+                      <div className={`text-[12px] font-mono leading-relaxed px-3 py-2 rounded-sm border border-zinc-800 bg-[#050505] ${statusCfg?.color ?? "text-zinc-400"}`}>
                         <span className="opacity-40 mr-2">↳</span>{evaluation.reasoning}
                       </div>
                     </div>

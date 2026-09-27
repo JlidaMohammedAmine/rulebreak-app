@@ -7,9 +7,9 @@ import {
 } from "lucide-react";
 
 const SEVERITY_CONFIG = {
-  HIGH: { dot: "bg-red-500", label: "text-red-400", border: "border-red-500/20", bg: "bg-red-500/8" },
-  MEDIUM: { dot: "bg-orange-500", label: "text-orange-400", border: "border-orange-500/20", bg: "bg-orange-500/8" },
-  LOW: { dot: "bg-amber-500", label: "text-amber-400", border: "border-amber-500/20", bg: "bg-amber-500/8" },
+  HIGH: { dot: "bg-red-500", label: "text-zinc-300", border: "border-zinc-800", bg: "bg-zinc-900", accent: "text-red-400" },
+  MEDIUM: { dot: "bg-orange-500", label: "text-zinc-300", border: "border-zinc-800", bg: "bg-zinc-900", accent: "text-orange-400" },
+  LOW: { dot: "bg-amber-500", label: "text-zinc-300", border: "border-zinc-800", bg: "bg-zinc-900", accent: "text-amber-400" },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -23,7 +23,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export function FindingsPanel() {
-  const { session, challengeRules, proposePatch, applyPatchAndRegress } = useWorkspaceStore();
+  const { session, challengeRules, proposePatch, applyPatchAndRegress, activeHighlightId, setActiveHighlight } = useWorkspaceStore();
   const { findings, patches, state } = session;
 
   const isIdle = ["IDLE", "EXTRACTING_RULES", "GENERATING_SCENARIOS"].includes(state);
@@ -122,7 +122,13 @@ export function FindingsPanel() {
           return (
             <div
               key={finding.id}
-              className={`rounded border overflow-hidden ${sev.border} ${sev.bg.replace('/8', '/5')}`}
+              className={`rounded border overflow-hidden transition-all duration-300 ${
+                activeHighlightId === finding.id 
+                  ? 'ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.05)]' 
+                  : ''
+              } ${sev.border} ${sev.bg}`}
+              onMouseEnter={() => setActiveHighlight(finding.id)}
+              onMouseLeave={() => setActiveHighlight(null)}
             >
               {/* Finding header */}
               <div className="px-5 pt-5 pb-4">
@@ -133,24 +139,29 @@ export function FindingsPanel() {
                       {TYPE_LABELS[finding.type] ?? finding.type.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm border ${sev.border} ${sev.label} opacity-80`}>
+                  <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm border border-zinc-800 ${sev.accent} opacity-80 uppercase`}>
                     {finding.severity}
                   </span>
                 </div>
-                <p className="text-[14px] text-slate-200 leading-snug font-medium">{finding.description}</p>
+                <p className="text-[14px] text-zinc-100 leading-snug font-medium">{finding.description}</p>
               </div>
 
               {/* Evidence */}
               <div className="px-5 pb-4">
-                <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest mb-2">Evidence</p>
-                <div className="text-[12px] text-slate-400 font-mono bg-black rounded p-3 border border-white/5 leading-relaxed">
-                  {finding.evidence.split(/(R\d{2})/).map((part, i) =>
-                    /^R\d{2}$/.test(part) ? (
-                      <span key={i} className="inline-flex items-center mx-0.5 px-1 py-0 text-[10px] font-black bg-white/5 text-slate-300 rounded-sm border border-white/10">
-                        {part}
-                      </span>
-                    ) : <span key={i}>{part}</span>
-                  )}
+                <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-2">Evidence</p>
+                <div className="text-[12px] text-zinc-400 font-mono bg-[#050505] rounded p-3 border border-zinc-800/50 leading-relaxed">
+                  {finding.evidence.split(/(R\d{2})/).map((part, i) => {
+                    if (/^R\d{2}$/.test(part)) {
+                      const rule = session.rules.find(r => r.id === part);
+                      const ruleLabel = rule ? rule.category.replace(/_/g, " ") : "Rule";
+                      return (
+                        <span key={i} className="inline-flex items-center mx-0.5 px-1 py-0 text-[10px] font-bold bg-zinc-800 text-zinc-300 rounded-sm border border-zinc-700 uppercase tracking-wider cursor-help" title={rule?.statement || part}>
+                          {ruleLabel}
+                        </span>
+                      );
+                    }
+                    return <span key={i}>{part}</span>;
+                  })}
                 </div>
               </div>
 
