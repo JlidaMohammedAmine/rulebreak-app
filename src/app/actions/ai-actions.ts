@@ -71,8 +71,10 @@ export async function* generateScenariosAction(rules: any[], policyText: string)
       schema: z.object({
         scenarios: z.array(scenarioSchema)
       }),
-      prompt: `You are an expert red-teamer. Given the following extracted rules and policy, generate 3-5 adversarial test scenarios to challenge the policy logic.
-      
+      prompt: `You are an expert red-teamer. Given the following extracted rules and policy, generate 3-5 HIGHLY ADVERSARIAL test scenarios to challenge the policy logic.
+Your goal is to find contradictions, edge cases, loopholes, or missing information in the rules. 
+Be creative and exploit exact phrasing.
+
 RULES:
 ${JSON.stringify(rules, null, 2)}
 
@@ -128,7 +130,9 @@ export async function* aggregateFindingsAction(evaluations: any[], rules: any[])
       schema: z.object({
         findings: z.array(findingSchema)
       }),
-      prompt: `Review these evaluations and aggregate them into high-level findings (e.g. contradictions, ambiguities).
+      prompt: `Review the following evaluations and aggregate them into high-level findings.
+You MUST output at least one finding if any evaluation has a status other than PASS (e.g. AMBIGUOUS, FAIL, CONTRADICTION).
+If there are loopholes, conflicts, or missing rules, document them as findings.
       
 EVALUATIONS:
 ${JSON.stringify(evaluations, null, 2)}
