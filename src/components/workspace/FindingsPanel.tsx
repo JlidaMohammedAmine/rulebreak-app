@@ -46,6 +46,25 @@ export function FindingsPanel() {
   const isRegressionRunning = state === "REGRESSION_RUNNING";
   const isBatchFixing = state === "PATCH_READY" && session.patches.length > 1; // simple heuristic
 
+  // ── Error state ──
+  if (state === "ERROR") {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden bg-black">
+        <div className="shrink-0 h-14 px-6 flex items-center border-b border-white/5">
+          <span className="flex items-center gap-2 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
+            <ShieldAlert className="w-3.5 h-3.5" />
+            Findings
+          </span>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <AlertTriangle className="w-8 h-8 text-red-500/50" />
+          <p className="text-[14px] font-light text-red-400">Analysis Failed</p>
+          <p className="text-[12px] font-mono text-slate-500 max-w-md bg-red-500/5 p-4 rounded border border-red-500/10 whitespace-pre-wrap">{session.error}</p>
+        </div>
+      </div>
+    );
+  }
+
   // ── Waiting state ──
   if (isIdle || isJudging || isRegressionRunning || isBatchFixing) {
     return (

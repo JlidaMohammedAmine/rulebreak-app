@@ -1,11 +1,11 @@
-import { createGroq } from '@ai-sdk/groq';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
-const model = groq('qwen/qwen3.8-27b');
+const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+const model = google('gemini-3.8-flash');
 
 const ruleSchema = z.object({
   id: z.string(),
