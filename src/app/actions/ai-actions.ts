@@ -9,19 +9,19 @@ import {
   findingSchema, 
   patchProposalSchema 
 } from '@/lib/validation/schemas';
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 
-const openai = createOpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || "",
 });
 
 // Helper to configure the model
 const getModel = () => {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Missing OpenAI API Key. Please add OPENAI_API_KEY to your .env.local file.");
+  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    throw new Error("Missing Gemini API Key. Please add GEMINI_API_KEY to your .env.local file.");
   }
-  return openai('gpt-4o-mini'); 
+  return google('gemini-1.5-flash'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
