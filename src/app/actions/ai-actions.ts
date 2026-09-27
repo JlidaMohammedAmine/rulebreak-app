@@ -21,7 +21,7 @@ const getModel = () => {
   if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error("Missing Gemini API Key. Please add GEMINI_API_KEY to your .env.local file.");
   }
-  return google('gemini-1.5-flash'); 
+  return google('gemini-3.8-flash'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
