@@ -54,13 +54,11 @@ export const scenarioCategorySchema = z.enum([
 ]);
 
 export const scenarioSchema = z.object({
-  id: z.string(), // e.g., S001
+  id: z.string(),
   type: scenarioCategorySchema,
   title: z.string(),
-  facts: z.record(z.string(), z.string()),
   narrative: z.string(),
   targetRules: z.array(z.string()),
-  expectedRisk: z.enum(["high", "medium", "low"]).nullable().describe("Can be null"),
 });
 
 export const scenariosResponseSchema = z.object({
@@ -87,9 +85,7 @@ export const evaluationSchema = z.object({
   status: evaluationStatusSchema,
   summary: z.string(),
   applicableRules: z.array(z.string()),
-  evidence: z.array(evidenceSchema),
   reasoning: z.string(),
-  recommendedClarification: z.string().nullable().describe("Can be null"),
 });
 
 export const evaluationsResponseSchema = z.object({
