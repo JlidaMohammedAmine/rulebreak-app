@@ -1,0 +1,60 @@
+import { createGroq } from '@ai-sdk/groq';
+import { generateObject } from 'ai';
+import { z } from 'zod';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+const groq = createGroq({ apiKey: process.env.GROQ_API_KEY });
+const model = groq('openai/gpt-oss-120b');
+
+const ruleSchema = z.object({
+  id: z.string(),
+  statement: z.string(),
+});
+
+const scenarioSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  narrative: z.string(),
+});
+
+const evalSchema = z.object({
+  scenarioId: z.string(),
+  status: z.enum(["PASS", "FAIL", "AMBIGUOUS", "CONTRADICTION"]),
+  summary: z.string(),
+});
+
+async function run() {
+  const policyText = `### Employee PTO Policy
+1. All employees must submit PTO requests at least 14 days in advance of their requested time off.
+2. Under no circumstances can a PTO request be approved if it spans the last week of the fiscal quarter.
+3. Employees who fall sick are entitled to use their PTO as "Emergency Sick Leave." When doing so, they must submit their PTO request on the exact day they fall ill.`;
+
+  console.log("Extracting...");
+  const rRes = await generateObject({
+    model,
+    schema: z.object({ rules: z.array(ruleSchema) }),
+    prompt: `Extract rules from:\n${policyText}`,
+  });
+  const rules = rRes.object.rules;
+  console.log("Rules:", rules);
+
+  console.log("Generating scenarios...");
+  const sRes = await generateObject({
+    model,
+    schema: z.object({ scenarios: z.array(scenarioSchema) }),
+    prompt: `Generate 3 testing scenarios specifically designed to evaluate these specific rules for contradictions:\n${JSON.stringify(rules)}`,
+  });
+  const scenarios = sRes.object.scenarios;
+  console.log("Scenarios:", scenarios);
+
+  console.log("Judging...");
+  const jRes = await generateObject({
+    model,
+    schema: z.object({ evaluations: z.array(evalSchema) }),
+    prompt: `Strict compliance judge. Evaluate these scenarios against the rules. Mark FAIL or CONTRADICTION if there is a conflict. Be harsh.\nRules: ${JSON.stringify(rules)}\nScenarios: ${JSON.stringify(scenarios)}\nPolicy: ${policyText}`,
+  });
+  console.log("Evaluations:", jRes.object.evaluations);
+}
+
+run().catch(console.error);

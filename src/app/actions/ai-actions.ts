@@ -21,7 +21,7 @@ const getModel = () => {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("Missing Groq API Key. Please add GROQ_API_KEY to your .env.local file.");
   }
-  return groq('qwen/qwen3.8-27b'); 
+  return groq('openai/gpt-oss-120b'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
@@ -71,9 +71,9 @@ export async function* generateScenariosAction(rules: any[], policyText: string)
       schema: z.object({
         scenarios: z.array(scenarioSchema)
       }),
-      prompt: `You are an expert red-teamer. Given the following extracted rules and policy, generate 3-5 HIGHLY ADVERSARIAL test scenarios to challenge the policy logic.
-Your goal is to find contradictions, edge cases, loopholes, or missing information in the rules. 
-Be creative and exploit exact phrasing.
+      prompt: `Given the following extracted rules and policy, generate 3-5 test scenarios to evaluate the policy logic.
+Your goal is to test for contradictions, edge cases, loopholes, or missing information in the rules. 
+Be creative.
 
 RULES:
 ${JSON.stringify(rules, null, 2)}
@@ -159,7 +159,7 @@ export async function* challengePolicyAction(rulesToChallenge: any[], policyText
       schema: z.object({
         scenarios: z.array(scenarioSchema)
       }),
-      prompt: `Generate 3 adversarial scenarios specifically designed to break or find loopholes in these specific rules:
+      prompt: `Generate 3 testing scenarios specifically designed to evaluate these specific rules for contradictions:
       
 RULES:
 ${JSON.stringify(rulesToChallenge, null, 2)}
