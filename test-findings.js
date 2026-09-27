@@ -1,17 +1,13 @@
-import { extractRulesAction, aggregateFindingsAction } from '@/app/actions/ai-actions';
-import { NextResponse } from 'next/server';
-
-export async function GET() {
+const { aggregateFindingsAction } = require('./.next/server/app/actions/ai-actions.js');
+(async () => {
   try {
     const rules = [{ id: 'R1', statement: 'Pip must be 5 days in office' }, { id: 'R2', statement: 'Remote workers can expense $500' }];
     const evals = [{ scenarioId: 'S1', status: 'FAIL', summary: 'Fails PIP check', applicableRules: ['R1'], evidence: [], reasoning: 'bad' }];
     const stream = aggregateFindingsAction(evals, rules);
-    const chunks = [];
+    let final = null;
     for await (const chunk of stream) {
-      chunks.push(chunk);
+      console.log(chunk);
+      final = chunk;
     }
-    return NextResponse.json({ success: true, chunks });
-  } catch (e: any) {
-    return NextResponse.json({ success: false, error: e.message, stack: e.stack });
-  }
-}
+  } catch (e) { console.error(e); }
+})();

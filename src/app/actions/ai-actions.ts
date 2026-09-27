@@ -9,19 +9,19 @@ import {
   findingSchema, 
   patchProposalSchema 
 } from '@/lib/validation/schemas';
-import { createGroq } from '@ai-sdk/groq';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY || "",
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 // Helper to configure the model
 const getModel = () => {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error("Missing Groq API Key. Please add GROQ_API_KEY to your .env.local file.");
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Missing OpenAI API Key. Please add OPENAI_API_KEY to your .env.local file.");
   }
-  return groq('qwen/qwen3.8-27b'); 
+  return openai('gpt-4o-mini'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
