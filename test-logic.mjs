@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
-const model = google('gemini-3.8-flash');
+const model = google('gemini-3.5-flash');
 
 const ruleSchema = z.object({
   id: z.string(),
