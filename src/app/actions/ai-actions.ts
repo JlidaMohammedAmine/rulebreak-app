@@ -21,7 +21,7 @@ const getModel = () => {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("Missing Groq API Key. Please add GROQ_API_KEY to your .env.local file.");
   }
-  return groq('openai/gpt-oss-120b'); 
+  return groq('qwen/qwen3.8-27b'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
@@ -99,7 +99,8 @@ export async function* judgeScenariosAction(scenarios: any[], rules: any[], poli
       schema: z.object({
         evaluations: z.array(evaluationSchema)
       }),
-      prompt: `You are an expert compliance judge. Evaluate the following scenarios against the rules and policy.
+      prompt: `You are an extremely strict compliance judge. Evaluate the following scenarios against the rules and policy.
+If the scenario reveals any conflict, ambiguity, or loophole, you MUST mark the status as 'FAIL' or 'CONTRADICTION' or 'AMBIGUOUS'. Do NOT let adversarial edge cases pass. Be harsh.
       
 SCENARIOS:
 ${JSON.stringify(scenarios, null, 2)}
