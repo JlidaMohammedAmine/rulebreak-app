@@ -110,6 +110,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const judgeStream = await judgeScenariosAction(currentScenarios, currentRules, cleanedText, complianceFramework || "None");
       for await (const partial of judgeStream) {
         if (get().session.id !== runId) return;
+        if (partial.error) throw new Error(partial.error);
         if (partial.evaluations) setEvaluations(partial.evaluations as any);
       }
 
@@ -118,6 +119,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const findingsStream = await aggregateFindingsAction(currentEvaluations, currentRules);
       for await (const partial of findingsStream) {
         if (get().session.id !== runId) return;
+        if (partial.error) throw new Error(partial.error);
         if (partial.findings) setFindings(partial.findings as any);
       }
       
