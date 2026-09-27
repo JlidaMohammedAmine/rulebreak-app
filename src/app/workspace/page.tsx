@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ShieldAlert, Activity, RotateCcw, Play, Loader2, ChevronRight } from "lucide-react";
+import { ShieldAlert, Activity, RotateCcw, Play, Loader2, ChevronRight, Download } from "lucide-react";
 
 import { useWorkspaceStore } from "@/lib/store/workspace-store";
 import { PolicyPanel } from "@/components/workspace/PolicyPanel";
@@ -50,6 +50,7 @@ function WorkspaceContent() {
   const [showInput, setShowInput] = useState(session.state === "IDLE");
   const [leftTab, setLeftTab] = useState<"document" | "graph">("document");
   const [rightTab, setRightTab] = useState<"findings" | "scenarios" | "regression">("findings");
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const hasAutoStarted = useRef(false);
 
   useEffect(() => {
@@ -118,6 +119,49 @@ function WorkspaceContent() {
             )}
             <span className={stateInfo.color}>{stateInfo.label}</span>
           </div>
+
+          {/* Export Report */}
+          {session.findings.length > 0 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="flex items-center gap-1.5 h-8 px-3 rounded text-[11px] font-medium text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export Report
+              </button>
+              
+              {showExportMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowExportMenu(false)} />
+                  <div className="absolute right-0 mt-2 w-48 rounded-md bg-[#111] border border-white/10 shadow-xl z-50 overflow-hidden py-1">
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        const { generateMarkdownReport, downloadMarkdownReport } = await import("@/lib/report-generator");
+                        const md = generateMarkdownReport(session);
+                        downloadMarkdownReport(md, `${session.policy?.title?.toLowerCase().replace(/\s+/g, '-') || 'policy'}-analysis-report.md`);
+                      }}
+                      className="w-full text-left px-4 py-2 text-[12px] text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
+                    >
+                      Export as Markdown
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        const { generateMarkdownReport, downloadPdfReport } = await import("@/lib/report-generator");
+                        const md = generateMarkdownReport(session);
+                        await downloadPdfReport(md, `${session.policy?.title?.toLowerCase().replace(/\s+/g, '-') || 'policy'}-analysis-report.pdf`);
+                      }}
+                      className="w-full text-left px-4 py-2 text-[12px] text-slate-300 hover:bg-indigo-500/10 hover:text-indigo-400 transition-colors"
+                    >
+                      Export as PDF
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Reset */}
           <button
