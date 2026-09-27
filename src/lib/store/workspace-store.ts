@@ -19,6 +19,7 @@ interface WorkspaceState {
   
   // Orchestration Thunks
   startAnalysis: (inputs: {title: string, text: string}[], complianceFramework?: string) => Promise<void>;
+  loadDemo: () => void;
   challengeRules: (rulesToChallenge: Rule[]) => Promise<void>;
   proposePatch: (finding: Finding) => Promise<void>;
   applyPatchAndRegress: (patch: PatchProposal) => Promise<void>;
@@ -58,6 +59,26 @@ export const useWorkspaceStore = create<WorkspaceState>()(
 
       activeHighlightId: null,
       setActiveHighlight: (id) => set({ activeHighlightId: id }),
+
+      loadDemo: () => {
+        import('@/lib/demo-data').then(({ DEMO_POLICY_TEXT, DEMO_RULES, DEMO_SCENARIOS, DEMO_EVALUATIONS, DEMO_FINDINGS }) => {
+          const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, reset } = get();
+          reset();
+          setPolicy({
+            id: "demo-walmart",
+            title: "Walmart Return & Coupon Policy",
+            rawText: DEMO_POLICY_TEXT,
+            sourceType: "url",
+            sourceChunks: [],
+            createdAt: new Date().toISOString(),
+          });
+          setState("EXTRACTING_RULES");
+          setTimeout(() => { setRules(DEMO_RULES as any); setState("GENERATING_SCENARIOS"); }, 800);
+          setTimeout(() => { setScenarios(DEMO_SCENARIOS as any); setState("JUDGING"); }, 1800);
+          setTimeout(() => { setEvaluations(DEMO_EVALUATIONS as any); setState("CHALLENGING"); }, 2800);
+          setTimeout(() => { setFindings(DEMO_FINDINGS as any); setState("COMPLETE"); }, 3800);
+        });
+      },
 
   startAnalysis: async (inputs: {title: string, text: string}[], complianceFramework?: string) => {
     const { setPolicy, setState, setRules, setScenarios, setEvaluations, setFindings, setError } = get();

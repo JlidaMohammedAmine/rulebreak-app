@@ -44,7 +44,7 @@ function WorkspaceContent() {
   const searchParams = useSearchParams();
   const isDemo = searchParams.get("demo") === "true";
   const isNew = searchParams.get("new") === "true";
-  const { session, startAnalysis, reset } = useWorkspaceStore();
+  const { session, startAnalysis, loadDemo, reset } = useWorkspaceStore();
   const [policies, setPolicies] = useState([{ title: isDemo ? "Demo Policy" : "Policy 1", text: isDemo ? DEMO_POLICY : "" }]);
   const [complianceFramework, setComplianceFramework] = useState("None");
   const [showInput, setShowInput] = useState(session.state === "IDLE");
@@ -66,8 +66,7 @@ function WorkspaceContent() {
     if (isDemo && !hasAutoStarted.current) {
       hasAutoStarted.current = true;
       setShowInput(false);
-      reset();
-      startAnalysis([{ title: "Demo Policy", text: DEMO_POLICY }], "None");
+      loadDemo();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNew, isDemo, router, reset]);
