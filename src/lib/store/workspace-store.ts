@@ -89,6 +89,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const extractStream = await extractRulesAction(cleanedText);
       for await (const partial of extractStream) {
         if (get().session.id !== runId) return;
+        if (partial.error) throw new Error(partial.error);
         if (partial.rules) setRules(partial.rules as any);
         if (partial.sources) {
           setPolicy({ ...get().session.policy!, sourceChunks: partial.sources as any });
@@ -100,6 +101,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const genStream = await generateScenariosAction(currentRules, cleanedText);
       for await (const partial of genStream) {
         if (get().session.id !== runId) return;
+        if (partial.error) throw new Error(partial.error);
         if (partial.scenarios) setScenarios(partial.scenarios as any);
       }
       
@@ -139,6 +141,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newScenarios: any[] = [];
       const chalStream = await challengePolicyAction(rulesToChallenge, session.policy.rawText);
       for await (const partial of chalStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.scenarios) {
           newScenarios = partial.scenarios;
           setScenarios([...session.scenarios, ...newScenarios]);
@@ -150,12 +153,14 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       setState("JUDGING");
       const judgeStream = await judgeScenariosAction(combinedScenarios, session.rules, session.policy.rawText, "None");
       for await (const partial of judgeStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.evaluations) setEvaluations(partial.evaluations as any);
       }
 
       setState("CHALLENGING"); // Using as aggregation step
       const findingsStream = await aggregateFindingsAction(get().session.evaluations, session.rules);
       for await (const partial of findingsStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.findings) setFindings(partial.findings as any);
       }
 
@@ -177,6 +182,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       const patchStream = await proposePatchAction(finding, session.policy.rawText, session.rules);
       let latestPatch: any = null;
       for await (const partial of patchStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.patch) {
           latestPatch = partial.patch;
           // Update patches array by replacing or adding
@@ -211,6 +217,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newRules: any[] = [];
       const extractStream = await extractRulesAction(patchedText);
       for await (const partial of extractStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.rules) {
           newRules = partial.rules as any;
           get().setRules(newRules);
@@ -221,6 +228,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newEvaluations: any[] = [];
       const judgeStream = await judgeScenariosAction(session.scenarios, newRules, patchedText, "None");
       for await (const partial of judgeStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.evaluations) {
           newEvaluations = partial.evaluations;
           setEvaluations(newEvaluations);
@@ -230,6 +238,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newFindings: any[] = [];
       const findingsStream = await aggregateFindingsAction(newEvaluations, newRules);
       for await (const partial of findingsStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.findings) {
           newFindings = partial.findings;
           setFindings(newFindings);
@@ -292,6 +301,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
         const patchStream = await proposePatchAction(finding, session.policy.rawText, session.rules);
         let latestPatch: any = null;
         for await (const partial of patchStream) {
+          if (partial.error) throw new Error(partial.error);
           if (partial.patch) latestPatch = partial.patch;
         }
         if (latestPatch) newPatches.push(latestPatch);
@@ -319,6 +329,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newRules: any[] = [];
       const extractStream = await extractRulesAction(patchedText);
       for await (const partial of extractStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.rules) {
           newRules = partial.rules as any;
           get().setRules(newRules);
@@ -329,6 +340,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newEvaluations: any[] = [];
       const judgeStream = await judgeScenariosAction(session.scenarios, newRules, patchedText, "None");
       for await (const partial of judgeStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.evaluations) {
           newEvaluations = partial.evaluations;
           setEvaluations(newEvaluations);
@@ -338,6 +350,7 @@ export const useWorkspaceStore = create<WorkspaceState>()(
       let newFindings: any[] = [];
       const findingsStream = await aggregateFindingsAction(newEvaluations, newRules);
       for await (const partial of findingsStream) {
+        if (partial.error) throw new Error(partial.error);
         if (partial.findings) {
           newFindings = partial.findings;
           setFindings(newFindings);

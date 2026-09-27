@@ -41,53 +41,64 @@ ${policyText}
 }
 
 export async function* extractRulesAction(policyText: string) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      rules: z.array(ruleSchema),
-      sources: z.array(sourceReferenceSchema)
-    }),
-    prompt: `You are an expert AI policy analyst. Extract all rules and source chunks from the following policy document.
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        rules: z.array(ruleSchema),
+        sources: z.array(sourceReferenceSchema)
+      }),
+      prompt: `You are an expert AI policy analyst. Extract all rules and source chunks from the following policy document.
+      
 DOCUMENT:
 ${policyText}
-    `,
-  });
+      `,
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("extractRulesAction Error:", e);
+    yield { error: e.message || "An error occurred during extraction" };
   }
 }
 
 export async function* generateScenariosAction(rules: any[], policyText: string) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      scenarios: z.array(scenarioSchema)
-    }),
-    prompt: `You are an expert red-teamer. Given the following extracted rules and policy, generate 3-5 adversarial test scenarios to challenge the policy logic.
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        scenarios: z.array(scenarioSchema)
+      }),
+      prompt: `You are an expert red-teamer. Given the following extracted rules and policy, generate 3-5 adversarial test scenarios to challenge the policy logic.
+      
 RULES:
 ${JSON.stringify(rules, null, 2)}
 
 POLICY:
 ${policyText}
-    `,
-  });
+      `,
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("generateScenariosAction Error:", e);
+    yield { error: e.message || "An error occurred during scenario generation" };
   }
 }
 
 export async function* judgeScenariosAction(scenarios: any[], rules: any[], policyText: string, framework: string) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      evaluations: z.array(evaluationSchema)
-    }),
-    prompt: `You are an expert compliance judge. Evaluate the following scenarios against the rules and policy.
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        evaluations: z.array(evaluationSchema)
+      }),
+      prompt: `You are an expert compliance judge. Evaluate the following scenarios against the rules and policy.
+      
 SCENARIOS:
 ${JSON.stringify(scenarios, null, 2)}
 
@@ -98,71 +109,90 @@ POLICY:
 ${policyText}
 
 FRAMEWORK: ${framework}
-    `,
-  });
+      `,
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("judgeScenariosAction Error:", e);
+    yield { error: e.message || "An error occurred during judging" };
   }
 }
 
 export async function* aggregateFindingsAction(evaluations: any[], rules: any[]) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      findings: z.array(findingSchema)
-    }),
-    prompt: `Review these evaluations and aggregate them into high-level findings (e.g. contradictions, ambiguities).
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        findings: z.array(findingSchema)
+      }),
+      prompt: `Review these evaluations and aggregate them into high-level findings (e.g. contradictions, ambiguities).
+      
 EVALUATIONS:
 ${JSON.stringify(evaluations, null, 2)}
 
 RULES:
 ${JSON.stringify(rules, null, 2)}
-    `,
-  });
+      `,
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("aggregateFindingsAction Error:", e);
+    yield { error: e.message || "An error occurred during aggregation" };
   }
 }
 
 export async function* challengePolicyAction(rulesToChallenge: any[], policyText: string) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      scenarios: z.array(scenarioSchema)
-    }),
-    prompt: `Generate 3 adversarial scenarios specifically designed to break or find loopholes in these specific rules:
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        scenarios: z.array(scenarioSchema)
+      }),
+      prompt: `Generate 3 adversarial scenarios specifically designed to break or find loopholes in these specific rules:
+      
 RULES:
 ${JSON.stringify(rulesToChallenge, null, 2)}
 
 CONTEXT POLICY:
 ${policyText}`,
-  });
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("challengePolicyAction Error:", e);
+    yield { error: e.message || "An error occurred during challenge generation" };
   }
 }
 
 export async function* proposePatchAction(finding: any, policyText: string, rules: any[]) {
-  const result = await streamObject({
-    model: getModel(),
-    schema: z.object({
-      patch: patchProposalSchema
-    }),
-    prompt: `You are an expert policy drafter. Fix this finding by proposing a minimal patch.
-    
+  try {
+    const result = await streamObject({
+      model: getModel(),
+      schema: z.object({
+        patch: patchProposalSchema
+      }),
+      prompt: `You are an expert policy drafter. Fix this finding by proposing a minimal patch.
+      
 FINDING:
 ${JSON.stringify(finding, null, 2)}
 
 AFFECTED RULES:
-${JSON.stringify(rules.filter(r => finding.ruleIds.includes(r.id)), null, 2)}`,
-  });
+${JSON.stringify(rules.filter((r: any) => finding.ruleIds.includes(r.id)), null, 2)}`,
+    });
 
-  for await (const partialObject of result.partialObjectStream) {
-    yield partialObject;
+    for await (const partialObject of result.partialObjectStream) {
+      yield partialObject;
+    }
+  } catch (e: any) {
+    console.error("proposePatchAction Error:", e);
+    yield { error: e.message || "An error occurred during patch generation" };
   }
 }
