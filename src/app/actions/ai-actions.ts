@@ -21,7 +21,7 @@ const getModel = () => {
   if (!process.env.GROQ_API_KEY) {
     throw new Error("Missing Groq API Key. Please add GROQ_API_KEY to your .env.local file.");
   }
-  return groq('llama-3.1-8b-instant'); 
+  return groq('openai/gpt-oss-120b'); 
 };
 
 export async function cleanPolicyAction(policyText: string) {
